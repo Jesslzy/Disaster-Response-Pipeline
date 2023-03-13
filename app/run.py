@@ -4,6 +4,7 @@ import pandas as pd
 
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
+from sklearn.base import BaseEstimator, TransformerMixin
 
 from flask import Flask
 from flask import render_template, request, jsonify
@@ -13,6 +14,32 @@ from sqlalchemy import create_engine
 
 
 app = Flask(__name__)
+
+class StartingVerbExtractor(BaseEstimator, TransformerMixin):
+    
+    """
+    Identifying if the starting word of a sentence is verb to create a feature for the classifier.
+    """
+
+    def starting_verb(self, text):
+        sentence_list = nltk.sent_tokenize(text)
+        for sentence in sentence_list:
+            # Getting pos tag for each word in a sentence
+            pos_tags = nltk.pos_tag(tokenize(sentence))
+            
+            # If the message is not empty, if the first word is verb, return 1, otherwise 0.
+            if len(pos_tags) > 1:
+                first_word, first_tag = pos_tags[0]
+                if first_tag in ['VB', 'VBP'] or first_word == 'RT':
+                    return 1
+        return 0
+
+    def fit(self, x, y=None):
+        return self
+
+    def transform(self, X):
+        X_tagged = pd.Series(X).apply(self.starting_verb)
+        return pd.DataFrame(X_tagged)
 
 def tokenize(text):
     tokens = word_tokenize(text)
@@ -44,8 +71,8 @@ def index():
     genre_names = list(genre_counts.index)
     
     # extract data needed for visuals - top 5 received messages category
-    cat_count = df[cat_names].sum().head(5)
     cat_names = df.drop(['message', 'original', 'genre', 'id'], axis = 1).columns
+    cat_count = df[cat_names].sum().head(5).sort_values(ascending = False)
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -72,7 +99,7 @@ def index():
             'data': [
                 Bar(
                     x=cat_names,
-                    y=cat_counts
+                    y=cat_count
                 )
             ],
 
