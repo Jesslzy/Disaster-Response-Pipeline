@@ -39,10 +39,13 @@ model = joblib.load("../models/classifier.pkl")
 @app.route('/index')
 def index():
     
-    # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
+    # extract data needed for visuals - genre distribution of messagies
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
+    
+    # extract data needed for visuals - top 5 received messages category
+    cat_count = df[cat_names].sum().head(5)
+    cat_names = df.drop(['message', 'original', 'genre', 'id'], axis = 1).columns
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -62,6 +65,24 @@ def index():
                 },
                 'xaxis': {
                     'title': "Genre"
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=cat_names,
+                    y=cat_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Top 5 Received Messages Category',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Message Category"
                 }
             }
         }
